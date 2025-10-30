@@ -1,23 +1,26 @@
-// اسم الـ Cache (الذاكرة المؤقتة) مع رقم إصدار
-const CACHE_NAME = 'mcq-app-cache-v2'; // <-- تم تغيير رقم الإصدار
+// ===============================================
+// !!!           التغيير المهم هنا           !!!
+// ===============================================
+const CACHE_NAME = 'mcq-app-cache-v3';
 
 // الملفات الأساسية التي نريد تخزينها
 const URLS_TO_CACHE = [
   '/', 
-  'index.html', // <-- تم إضافة هذا لضمان التخزين
+  'index.html', // هذا سيخزن النسخة الجديدة من index.html
   'https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js',
   'https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js',
   'https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js'
 ];
 
 // 1. حدث التثبيت (Install)
-// يتم استدعاؤه عند تثبيت الـ Service Worker لأول مرة
+// سيتم تشغيل هذا لأن v3 جديد
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Service Worker: Caching App Shell...');
+        // سيقوم بجلب index.html الجديد من السيرفر
         return cache.addAll(URLS_TO_CACHE);
       })
       .then(() => self.skipWaiting()) // تفعيل الـ SW الجديد فوراً
@@ -25,40 +28,34 @@ self.addEventListener('install', (event) => {
 });
 
 // 2. حدث التفعيل (Activate)
-// يتم استدعاؤه لتنظيف الـ Cache القديم
 self.addEventListener('activate', (event) => {
   console.log('Service Worker: Activating...');
-  const cacheWhitelist = [CACHE_NAME];
+  const cacheWhitelist = [CACHE_NAME]; // القائمة الآن هي v3
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          // إذا كان الـ Cache قديم (اسمه غير موجود في القائمة البيضاء)، احذفه
+          // سيجد 'mcq-app-cache-v2' ويقوم بحذفه
           if (cacheWhitelist.indexOf(cacheName) === -1) {
             console.log('Service Worker: Deleting old cache', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => self.clients.claim()) // السيطرة على الصفحة الحالية فوراً
+    }).then(() => self.clients.claim())
   );
 });
 
 // 3. حدث جلب البيانات (Fetch)
-// يتم استدعاؤه مع كل طلب شبكة (مثل طلب صفحة، صورة، ملف...)
 self.addEventListener('fetch', (event) => {
-  // نحن نستخدم استراتيجية "Cache First" (الـ Cache أولاً)
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // إذا وجدنا الطلب في الـ Cache، قم بإرجاعه
+        // إذا وجده في كاش v3، سيعيده
         if (response) {
-          // console.log('Service Worker: Fetching from Cache', event.request.url);
           return response;
         }
-
-        // إذا لم نجده، اذهب إلى الشبكة (الإنترنت)
-        // console.log('Service Worker: Fetching from Network', event.request.url);
+        // إذا لم يجده، سيجلبه من الإنترنت
         return fetch(event.request);
       })
   );
