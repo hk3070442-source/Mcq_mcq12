@@ -236,9 +236,9 @@ const save = () => {
   });
 };
 
-// ==========================================================
-//                 !!!  بداية التعديل  !!!
-// ==========================================================
+// ===============================================
+// !!!     إصلاح الأوفلاين موجود هنا     !!!
+// ===============================================
 const load = () => {
   updateContextKeys();
   const rawStore = localStorage.getItem(STORE_KEY);
@@ -256,24 +256,21 @@ const load = () => {
       localStorage.setItem(STORE_KEY, JSON.stringify(store));
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     }
-    
+
     // --- تعديل ---
     // اعرض الواجهة بعد محاولة جلب البيانات من الشبكة
-    route();
+    route(); 
     // --- نهاية التعديل ---
 
   }).catch(err => {
     console.warn("Could not sync with Firebase, running in offline mode.", err);
-    
+
     // --- تعديل ---
     // اعرض الواجهة حتى لو فشل الاتصال، مستخدماً بيانات localStorage
     route();
     // --- نهاية التعديل ---
   });
 };
-// ==========================================================
-//                 !!!  نهاية التعديل  !!!
-// ==========================================================
 
 const saveSettings = () => {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -501,30 +498,43 @@ function scoreQuiz(){
   el('restart-quiz-btn').onclick = () => renderQuiz(quiz.subjectId, quiz.lectureId);
   el('review-btn').onclick = () => renderReview();
 }
+
+// ===============================================
+// !!!    إصلاح "مراجعة الإجابات" موجود هنا     !!!
+// ===============================================
 function renderReview(){
     hideAll();
     const box = el('view-review');
     box.classList.remove('hidden');
     box.innerHTML = `<div class="row" style="justify-content:space-between; align-items:center;"><h3>مراجعة الإجابات</h3><a class="btn" href="#/subject/${quiz.subjectId}">عودة</a></div>`;
+    
     quiz.items.forEach((q, i) => {
         const questionCard = document.createElement('div');
         questionCard.className = 'card';
         questionCard.style.marginTop = '15px';
+        
         let optionsHTML = '';
         const userChoice = quiz.selections[i];
         const correctChoice = q.correctIndex;
+        
         if (q.shuffledMap) {
-            q.shuffledMap.forEach((shuffledOpt, domIndex) => {
+            q.shuffledMap.forEach((shuffledOpt, domIndex) => { // <-- المتغير هنا اسمه domIndex
                 const optIndex = shuffledOpt.originalIndex;
                 let classes = 'q-item review-item';
+                
                 if (optIndex === correctChoice) classes += ' review-correct';
+                
                 if (userChoice !== null && optIndex === userChoice) {
                     classes += (userChoice === correctChoice) ? ' review-picked-correct' : ' review-picked-wrong';
                 }
+                
                 const ABC=['A','B','C','D','E'];
-                optionsHTML += `<div class="${classes}"><div class="row"><span class="choiceBadge">${ABC[idx]}</span><div>${shuffledOpt.text}</div></div></div>`;
+                
+                // --- هذا هو السطر الذي تم إصلاحه ---
+                optionsHTML += `<div class="${classes}"><div class="row"><span class="choiceBadge">${ABC[domIndex]}</span><div>${shuffledOpt.text}</div></div></div>`;
             });
         }
+        
         questionCard.innerHTML = `
             <div style="font-weight:800;margin-bottom:10px;">${i+1}. ${q.text}</div>
             <div style="display:grid;gap:8px;">${optionsHTML}</div>
