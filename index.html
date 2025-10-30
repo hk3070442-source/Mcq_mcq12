@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>MCQ — تطبيق اختبارات </title>
+<style>
+:root{
+  --bg1:#0b1024; --bg2:#071825;
+  --card:#101a2fbb; --tile:#141f35;
+  --text:#e7e8ea; --muted:#9aa7bd; --border:#1f2937;
+  --prim:#22c55e; --prim2:#3b82f6; --danger:#ef4444; --warn:#f59e0b;
+}
+html,body{height:100%}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,"Harmonia Sans",Tahoma,Arial,sans-serif;
+  background:
+    radial-gradient(1200px 600px at 90% 10%, color-mix(in oklab, var(--prim) 20%, transparent), transparent 60%),
+    radial-gradient(900px 600px at 10% 90%, color-mix(in oklab, var(--prim2) 22%, transparent), transparent 60%),
+    linear-gradient(180deg,var(--bg1),var(--bg2));
+}
+a{color:inherit;text-decoration:none}
+.container{max-width:980px;margin:82px auto calc(90px + env(safe-area-inset-bottom,0px));padding:16px}
+.appbar{position:fixed;inset-inline:0;top:0;height:64px;z-index:1000;
+  background:linear-gradient(180deg, color-mix(in oklab, var(--bg1) 80%, #000 20%), var(--bg1));
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px}
+.appbar .title{font-weight:800}
+.appbar .subtitle{color:var(--muted);font-size:12px}
+.iconbtn{width:40px;height:40px;border-radius:999px;background:color-mix(in oklab, var(--bg2) 70%, #000 30%);border:1px solid var(--border);display:grid;place-items:center;cursor:pointer}
+.kebab{width:18px;height:18px;position:relative}
+.kebab::before,.kebab::after,.kebab span{content:"";position:absolute;inset-inline-start:7px;width:4px;height:4px;background:var(--text);border-radius:999px}
+.kebab::before{top:2px}.kebab span{top:8px}.kebab::after{top:14px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:1499}
+.overlay.open{display:block}
+.menu{position:fixed;top:56px;inset-inline-end:8px;background:color-mix(in oklab, var(--card) 90%, #000 10%);
+  border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.35);
+  padding:6px;min-width:230px;display:none;z-index:1500}
+.menu.open{display:block}
+.menu .mi{padding:10px 12px;border-radius:10px;cursor:pointer}
+.menu .mi:hover{background:color-mix(in oklab, var(--tile) 85%, #000 15%)}
+.card{background:var(--card);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:20px;padding:14px}
+.muted{color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--border);background:color-mix(in oklab, var(--bg2) 70%, #000 30%);color:var(--text);
+  padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;display:inline-flex;gap:8px;align-items:center;transition:.18s}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{background:var(--prim);color:#06170c;border-color:transparent}
+.btn.danger{background:var(--danger);color:#1b0606;border-color:transparent}
+.btn.warn{background:var(--warn);color:#141005;border-color:transparent}
+.pill{display:inline-block;padding:6px 10px;background:color-mix(in oklab, var(--bg2) 70%, #000 30%);border:1px solid var(--border);border-radius:999px;font-size:12px}
+
+/* !!! تعديل: تم إضافة direction rtl لإصلاح علامة الاستفهام */
+.input,select,textarea{
+  direction: rtl; 
+  width:100%;
+  background:color-mix(in oklab, var(--bg2) 68%, #000 32%);
+  color:var(--text);border:1px solid var(--border);
+  border-radius:12px;padding:10px 12px;outline:none
+}
+
+.tiles{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:420px){.tiles{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:680px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{
+  position:relative;padding:16px;border:1px solid var(--border);border-radius:20px;
+  background:var(--tile);box-shadow:0 6px 14px rgba(0,0,0,.25);
+  display:flex;flex-direction:column;justify-content:space-between;transition:transform .25s ease, box-shadow .25s ease, background .25s ease
+}
+.tile .name{font-size:18px;font-weight:800}
+.tile:hover{transform:translateY(-4px);box-shadow:0 16px 28px rgba(0,0,0,.35)}
+.progress{height:10px;width:100%;background:color-mix(in oklab, var(--bg2) 70%, #000 30%);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.progress>div{height:100%;background:linear-gradient(90deg,var(--prim),var(--prim2));width:0%; transition: width 0.5s linear;}
+.q-item{border:1px solid var(--border);border-radius:14px;padding:12px;background:color-mix(in oklab, var(--bg2) 65%, #000 35%);cursor:pointer;transition:.15s}
+.q-item.picked{border-color:var(--prim2); background: color-mix(in oklab, var(--prim2) 20%, var(--bg2) 80%);}
+.q-item.correct{background:#0f2316;border-color:#1e3a2f}
+.q-item.wrong{background:#2a0d10;border-color:#4a1214}
+.q-item.review-correct {background:#0f2316; border-color:#1e3a2f; opacity:1 !important;}
+.q-item.review-picked-wrong {border-color: var(--danger); background: #2a0d10;}
+.q-item.review-picked-correct {border-color: var(--prim);}
+.q-item.review-item {cursor:default; opacity:0.7;}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.choiceBadge{display:inline-block;min-width:32px;text-align:center;font-weight:800;background:color-mix(in oklab, var(--bg2) 70%, #000 30%);border:1px solid var(--border);border-radius:10px;padding:6px 0;margin-inline-end:8px}
+.bottombar{
+  position:fixed;inset-inline:0;bottom:0;height:64px;
+  background:color-mix(in oklab, var(--bg2) 80%, #000 20%);
+  backdrop-filter:blur(6px);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;gap:10px;z-index:900;
+  padding:8px; padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));
+}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1600}
+.modal.open{display:flex}
+.modal .sheet{max-width:640px;width:92vw;background:color-mix(in oklab, var(--card) 95%, #000 5%);border:1px solid var(--border);border-radius:16px;padding:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.optgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.optField{display:flex;align-items:center;gap:8px}
+.abadge{min-width:36px;text-align:center;font-weight:800;border:1px solid var(--border);background:color-mix(in oklab, var(--bg2) 70%, #000 30%);border-radius:10px;padding:8px 0}
+.input.opt{flex:1}
+.hidden{display:none !important;}
+input[type="color"]{height:44px;width:100%;padding:0;border-radius:12px;background:#0b1020;border:1px solid var(--border);cursor:pointer}
+input[type="color"]::-webkit-color-swatch-wrapper{padding:4px;border-radius:10px}
+input[type="color"]::-webkit-color-swatch{border:none;border-radius:8px}
+.admin-q-option{ font-size: 14px; opacity: 0.8; }
+.admin-q-option.correct{ opacity: 1; color: var(--prim); font-weight: bold; }
+
+/* !!! إلغاء: تم حذف أكواد .quiz-view-card و .quiz-scroll-area */
+</style>
+</head>
+<body>
+
+<div id="view-login" class="card" style="max-width: 400px; margin: 60px auto; display: none;">
+  <h3 style="text-align: center;">تسجيل الدخول</h3>
+  <div class="row" style="justify-content: center; margin-bottom: 15px;">
+    <button id="tab-student" class="btn primary">دخول كطالب</button>
+    <button id="tab-admin" class="btn">دخول كأدمن</button>
+  </div>
+  
+  <div id="form-student">
+    <p class="muted" style="text-align: center;">اطلب الكود من الأستاذ للدخول.</p>
+    <input type="text" id="login-code" class="input" placeholder="أدخل الكود" style="margin-bottom: 10px; text-align: center; font-size: 16px; letter-spacing: 3px;">
+    <button id="btn-login-student" class="btn primary" style="width: 100%; justify-content: center;">دخول</button>
+  </div>
+
+  <div id="form-admin" class="hidden">
+    <p class="muted" style="text-align: center;">للأساتذة فقط لإدارة المحتوى.</p>
+    <input type="email" id="login-email" class="input" placeholder="البريد الإلكتروني" style="margin-bottom: 10px;" autocomplete="email">
+    <input type="password" id="login-pass" class="input" placeholder="كلمة المرور" style="margin-bottom: 10px;" autocomplete="current-password">
+    <div class="row" style="justify-content: center;">
+      <button id="btn-login-admin" class="btn primary">دخول</button>
+      <button id="btn-signup-admin" class="btn">إنشاء حساب</button>
+    </div>
+  </div>
+  
+  <div id="login-error" class="muted" style="color:var(--danger); margin-top:10px; text-align: center;"></div>
+</div>
+
+<div class="appbar hidden" id="appbar">
+  <div>
+    <div class="title">MCQ — تطبيق اختبارات</div>
+    <div class="subtitle">البرمجة التطبيق من قبل اخوكم حسن قادر</div>
+  </div>
+  <button class="iconbtn" id="menuBtn" title="المزيد"><div class="kebab"><span></span></div></button>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="menu" id="menu">
+  <div class="mi" id="mi-home">الصفحة الرئيسية</div>
+  <div class="mi hidden" id="mi-admin">إدارة المحتوى</div>
+  <div class="mi" id="mi-settings">الإعدادات (ألوان)</div>
+  <div class="mi" id="mi-logout" style="color: var(--warn);">تسجيل الخروج</div>
+</div>
+
+<div class="container hidden" id="main-container">
+  <section id="view-home" class="card hidden"></section>
+  <section id="view-lectures" class="card hidden"></section>
+  <section id="view-quiz" class="card hidden"></section>
+  <section id="view-admin" class="card hidden"></section>
+  <section id="view-results" class="card hidden"></section>
+  <section id="view-review" class="card hidden"></section>
+</div>
+
+<div class="bottombar hidden" id="bar">
+  <button class="btn" id="prev">◀ السابق</button>
+  <button class="btn primary" id="next">التالي ▶</button>
+</div>
+
+<div class="modal" id="settingsModal">
+    <div class="sheet">
+        <div class="row" style="justify-content:space-between;align-items:center"><h3>الإعدادات</h3><button class="btn" id="closeSettings">إغلاق</button></div>
+        <p class="muted">عدّل ألوان الواجهة.</p>
+        <div class="grid2">
+        <div><div class="muted">خلفية 1</div><input type="color" id="c_bg1"></div>
+        <div><div class="muted">خلفية 2</div><input type="color" id="c_bg2"></div>
+        <div><div class="muted">لون البطاقة</div><input type="color" id="c_card"></div>
+        <div><div class="muted">لون البلاطة</div><input type="color" id="c_tile"></div>
+        <div><div class="muted">لون النص</div><input type="color" id="c_text"></div>
+        <div><div class="muted">لون النص الباهت</div><input type="color" id="c_muted"></div>
+        <div><div class="muted">لون الحدود</div><input type="color" id="c_border"></div>
+        <div><div class="muted">اللون الأساسي</div><input type="color" id="c_prim"></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="saveTheme">حفظ</button><button class="btn warn" id="resetTheme">إعادة للوضع الافتراضي</button></div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+/* ===== Firebase Config & Auth ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBoOhETcq2YFYP41IcTHhz7Eg5bbrVpEa8",
+  authDomain: "newproject-18294.firebaseapp.com",
+  projectId: "newproject-18294",
+  databaseURL: "https://newproject-18294-default-rtdb.firebaseio.com", 
+  storageBucket: "newproject-18294.firebasestorage.app",
+  messagingSenderId: "737672096003",
+  appId: "1:737672096003:web:973bd3233d9ca126aae136",
+  measurementId: "G-0LBZGWYTG0"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database(); 
+
+let currentUser = null; 
+let currentAdminContext = null; 
+let adminCodeListener = null; 
+let isNewAdminSignup = false; 
+
+/* ===== Helpers & Store ===== */
+let STORE_KEY, SETTINGS_KEY;
+const THEME_KEY='mcq_theme_v3';
+const el=id=>document.getElementById(id);
+const uid=()=>Math.random().toString(36).slice(2,10);
+let store={subjects:[],questions:[]};
+let settings={};
+let questionTimerInterval;
+
+function updateContextKeys() {
+  if (!currentAdminContext) return;
+  STORE_KEY = `mcq_store_v13_${currentAdminContext}`;
+  SETTINGS_KEY = `mcq_settings_v1_${currentAdminContext}`;
+}
+
+const save = () => {
+  if (!currentUser || currentUser.role !== 'admin' || !currentAdminContext) return;
+  
+  localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  
+  const dataPath = `content/${currentAdminContext}`;
+  db.ref(dataPath).set({ store: store, settings: settings }).catch(err => {
+    console.error("Firebase save failed:", err);
+  });
+};
+
+// ==========================================================
+//                 !!!  بداية التعديل  !!!
+// ==========================================================
+const load = () => {
+  updateContextKeys();
+  const rawStore = localStorage.getItem(STORE_KEY);
+  if (rawStore) { try { store = JSON.parse(rawStore); } catch {} }
+  const rawSettings = localStorage.getItem(SETTINGS_KEY);
+  if (rawSettings) { try { settings = JSON.parse(rawSettings); } catch {} }
+  
+  const dataPath = `content/${currentAdminContext}`;
+  db.ref(dataPath).once('value', snapshot => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      store = data.store || { subjects: [], questions: [] };
+      settings = data.settings || {};
+      
+      localStorage.setItem(STORE_KEY, JSON.stringify(store));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
+    
+    // --- تعديل ---
+    // اعرض الواجهة بعد محاولة جلب البيانات من الشبكة
+    route();
+    // --- نهاية التعديل ---
+
+  }).catch(err => {
+    console.warn("Could not sync with Firebase, running in offline mode.", err);
+    
+    // --- تعديل ---
+    // اعرض الواجهة حتى لو فشل الاتصال، مستخدماً بيانات localStorage
+    route();
+    // --- نهاية التعديل ---
+  });
+};
+// ==========================================================
+//                 !!!  نهاية التعديل  !!!
+// ==========================================================
+
+const saveSettings = () => {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  if (currentUser && currentUser.role === 'admin') {
+    save(); 
+  }
+};
+
+function shuffleArray(array) {
+  let a = [...array];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ===== Theme ===== */
+function applyTheme(t){
+  const r=document.documentElement.style;
+  r.setProperty('--bg1', t.bg1 || '#0b1024'); r.setProperty('--bg2', t.bg2 || '#071825');
+  r.setProperty('--card', t.card || '#101a2fbb'); r.setProperty('--tile', t.tile || '#141f35');
+  r.setProperty('--text', t.text || '#e7e8ea'); r.setProperty('--muted', t.muted || '#9aa7bd');
+  r.setProperty('--border', t.border || '#1f2937'); r.setProperty('--prim', t.prim || '#22c55e');
+}
+function currentTheme(){ return JSON.parse(localStorage.getItem(THEME_KEY)||'{}'); }
+function loadThemeUI(){
+  const t=currentTheme();
+  el('c_bg1').value = t.bg1 || '#0b1024'; el('c_bg2').value = t.bg2 || '#071825';
+  el('c_card').value = (t.card || '#101a2f').slice(0,7); el('c_tile').value = t.tile || '#141f35';
+  el('c_text').value = t.text || '#e7e8ea'; el('c_muted').value = t.muted || '#9aa7bd';
+  el('c_border').value = t.border || '#1f2937'; el('c_prim').value = t.prim || '#22c55e';
+}
+function saveTheme(){
+  const t={
+    bg1: el('c_bg1').value, bg2: el('c_bg2').value,
+    card: el('c_card').value+'bb', tile: el('c_tile').value,
+    text: el('c_text').value, muted: el('c_muted').value,
+    border: el('c_border').value, prim: el('c_prim').value
+  };
+  localStorage.setItem(THEME_KEY,JSON.stringify(t)); applyTheme(t); closeSettings();
+}
+function resetTheme(){ localStorage.removeItem(THEME_KEY); applyTheme({}); loadThemeUI(); }
+
+/* ===== Router & Modals ===== */
+function route(){
+  clearInterval(questionTimerInterval);
+  if(adminCodeListener) adminCodeListener.off('value');
+
+  const hash=location.hash||'#/';
+  hideAll();
+  
+  if (!currentUser) return; 
+
+  const p=hash.replace(/^#\//,'').split('/');
+  if(p[0]==='') return renderHome();
+  if(p[0]==='subject'&&p[1]) return renderLectures(p[1]);
+  if(p[0]==='quiz'&&p[1]&&p[2]) return renderQuiz(p[1],p[2]);
+  if(p[0]==='admin' && currentUser.role === 'admin') return renderAdmin();
+  renderHome();
+}
+function hideAll(){
+    ['view-home','view-lectures','view-quiz','view-admin','view-results','view-review', 'view-login'].forEach(id=>{if(el(id))el(id).classList.add('hidden')});
+    if(el('bar')) el('bar').classList.add('hidden');
+}
+window.addEventListener('hashchange',route);
+const menuBtn=el('menuBtn'), menu=el('menu'), overlay=el('overlay');
+function openMenu(){ menu.classList.add('open'); overlay.classList.add('open'); }
+function closeMenu(){ menu.classList.remove('open'); overlay.classList.remove('open'); }
+menuBtn.addEventListener('click',(e)=>{e.stopPropagation(); menu.classList.contains('open')?closeMenu():openMenu();});
+overlay.addEventListener('click', closeMenu);
+el('mi-home').onclick = ()=>{ location.hash='#/'; closeMenu(); };
+el('mi-admin').onclick = ()=>{ location.hash='#/admin'; closeMenu(); };
+el('mi-settings').onclick = ()=>{ openSettings(); closeMenu(); };
+function openSettings(){ el('settingsModal').classList.add('open'); loadThemeUI(); }
+function closeSettings(){ el('settingsModal').classList.remove('open'); }
+el('saveTheme').onclick=saveTheme;
+el('resetTheme').onclick=resetTheme;
+el('closeSettings').onclick=closeSettings;
+
+/* ===== Views ===== */
+function renderHome(){
+  const box=el('view-home'); box.classList.remove('hidden');
+  const tiles=(store.subjects||[]).map(s=>`<a class="tile" href="#/subject/${s.id}"><div class="name">${s.name}</div><div class="muted">محاضرات: ${s.lectures?.length||0}</div></a>`).join('');
+  box.innerHTML=`<h3 style="margin:0 0 10px">المواد الدراسية</h3><div class="tiles">${tiles || '<div class="muted">لا مواد بعد.</div>'}</div>`;
+}
+function renderLectures(subjectId){
+    const s=store.subjects.find(x=>x.id===subjectId);
+    const box=el('view-lectures'); box.classList.remove('hidden');
+    if(!s){ box.innerHTML='<div class="muted">مادة غير موجودة</div>'; return; }
+    const tiles=(s.lectures||[]).map(l=>`<a class="tile" href="#/quiz/${s.id}/${l.id}"><div class="name">${l.name}</div><div class="muted">أسئلة: ${store.questions.filter(q=>q.lectureId===l.id).length}</div></a>`).join('');
+    box.innerHTML=`<div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">${s.name}</h3><a class="btn" href="#/">◀ رجوع</a></div><div class="tiles" style="margin-top:10px">${tiles || '<div class="muted">لا محاضرات بعد.</div>'}</div>`;
+}
+
+/* ===== Quiz Logic ===== */
+let quiz={items:[],i:0,selections:{},answered:{},lock:false};
+// !!! تعديل: تم إرجاع الدالة للشكل الأصلي (إلغاء تثبيت السؤال)
+function renderQuiz(subjectId,lectureId){
+  hideAll();
+  clearInterval(questionTimerInterval);
+  quiz.items = shuffleArray(store.questions.filter(q=>q.subjectId===subjectId&&q.lectureId===lectureId));
+  quiz.i=0; quiz.selections={}; quiz.answered={}; quiz.lock=false;
+  quiz.subjectId = subjectId; quiz.lectureId = lectureId;
+  const box=el('view-quiz'); box.classList.remove('hidden');
+  
+  if(quiz.items.length===0){ 
+    box.innerHTML=`<h3>لا أسئلة.</h3><a class="btn" href="#/subject/${subjectId}">◀ رجوع</a>`; 
+    return; 
+  }
+  
+  el('bar').classList.remove('hidden');
+  box.innerHTML=`
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div class="pill">سؤال <span id="meta"></span></div>
+      ${settings.timePerQuestion > 0 ? '<div id="q-timer-pill" class="pill">⏱️ <span id="q-timer">--</span></div>' : ''}
+      <div class="progress" style="flex:1;margin-inline:12px"><div id="prog"></div></div>
+    </div>
+    <div style="margin-top:12px">
+      <div id="qtext" style="font-weight:800;font-size:18px;margin-bottom:10px;"></div>
+      <div id="opts" style="display:grid;gap:8px"></div>
+      <div id="expl" class="muted" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border)"></div>
+    </div>
+  `;
+
+  el('prev').onclick=()=>{ if(quiz.i>0){ quiz.i--; draw(); } };
+  el('next').onclick=()=>{ advanceQuestion(); };
+  draw();
+}
+function draw(){
+  clearInterval(questionTimerInterval);
+  const i=quiz.i; const q=quiz.items[i];
+  quiz.lock = false;
+  el('meta').textContent=`${i+1} / ${quiz.items.length}`;
+  el('qtext').textContent=q.text;
+  const progBar = el('prog');
+  if (!settings.timePerQuestion > 0) {
+    progBar.style.width=`${Math.round(((i+1)/quiz.items.length)*100)}%`;
+  }
+  const wrap=el('opts'); wrap.innerHTML='';
+  const shuffledOptions = shuffleArray(q.options.map((text, index) => ({ text, originalIndex: index })));
+  q.shuffledMap = shuffledOptions;
+  shuffledOptions.forEach((opt, idx)=>{
+    const ABC=['A','B','C','D','E'];
+    const row=document.createElement('div'); row.className='q-item';
+    row.innerHTML=`<div class="row"><span class="choiceBadge">${ABC[idx]}</span><div>${opt.text}</div></div>`;
+    row.onclick=()=>select(opt.originalIndex);
+    wrap.appendChild(row);
+  });
+  el('expl').textContent='';
+  if(quiz.answered[i]){ reveal(); disableOptions(); }
+  else if (settings.timePerQuestion > 0) {
+      let timeLeft = settings.timePerQuestion;
+      const timerEl = el('q-timer'), pillEl = el('q-timer-pill');
+      progBar.style.width = '100%';
+      const updateTimer = () => {
+          if(!timerEl || !pillEl) return;
+          const percentageLeft = (timeLeft / settings.timePerQuestion) * 100;
+          progBar.style.width = `${percentageLeft}%`;
+          timerEl.textContent = timeLeft;
+          pillEl.style.background = timeLeft <= 5 ? 'var(--danger)' : '';
+          if(timeLeft < 0){
+              quiz.selections[i] = null;
+              quiz.answered[i] = true;
+              advanceQuestion();
+          }
+          timeLeft--;
+      };
+      updateTimer();
+      questionTimerInterval = setInterval(updateTimer, 1000);
+  }
+}
+function select(originalIndex){
+  if(quiz.lock) return;
+  quiz.lock = true;
+  clearInterval(questionTimerInterval);
+  const i = quiz.i;
+  quiz.selections[i] = originalIndex;
+  quiz.answered[i] = true;
+  const q = quiz.items[i];
+  const domIndexOfPicked = q.shuffledMap.findIndex(opt => opt.originalIndex === originalIndex);
+  if(domIndexOfPicked !== -1) el('opts').children[domIndexOfPicked].classList.add('picked');
+  disableOptions();
+  setTimeout(() => { reveal(); }, 2000);
+}
+function advanceQuestion() {
+    if(quiz.lock && !quiz.answered[quiz.i]) return;
+    clearInterval(questionTimerInterval);
+    if (quiz.i < quiz.items.length - 1) {
+        quiz.i++;
+        draw();
+    } else {
+        scoreQuiz();
+    }
+}
+function reveal(){
+  const i = quiz.i; const q = quiz.items[i];
+  const pickedOriginalIndex = quiz.selections[i];
+  const correctOriginalIndex = q.correctIndex;
+  q.shuffledMap.forEach((opt, domIndex) => {
+    const domElement = el('opts').children[domIndex];
+    domElement.classList.remove('picked');
+    if (opt.originalIndex === correctOriginalIndex) domElement.classList.add('correct');
+    else if (opt.originalIndex === pickedOriginalIndex) domElement.classList.add('wrong');
+  });
+  if(q.explanation){ el('expl').textContent = `التفسير: ${q.explanation}`; }
+}
+function disableOptions(){ Array.from(el('opts').children).forEach(c=> c.style.pointerEvents='none'); }
+function scoreQuiz(){
+  clearInterval(questionTimerInterval);
+  hideAll();
+  const total = quiz.items.length;
+  let corr = 0;
+  quiz.items.forEach((q, i) => { if(quiz.selections[i] === q.correctIndex) corr++; });
+  const pct = Math.round((corr / Math.max(1, total)) * 100);
+  const box = el('view-results');
+  box.innerHTML = `
+    <h3 style="text-align:center;">النتيجة النهائية</h3>
+    <div style="font-size: 32px; font-weight: 800; margin: 20px 0; text-align: center; color: var(--prim);">${corr} / ${total}</div>
+    <div class="muted" style="text-align: center; margin-bottom: 25px; font-size: 16px;">النسبة: ${pct}%</div>
+    <div class="row" style="justify-content: center; gap: 12px;">
+        <button id="review-btn" class="btn warn">مراجعة الإجابات</button>
+        <button id="restart-quiz-btn" class="btn primary">إعادة الاختبار</button>
+    </div>`;
+  box.classList.remove('hidden');
+  el('restart-quiz-btn').onclick = () => renderQuiz(quiz.subjectId, quiz.lectureId);
+  el('review-btn').onclick = () => renderReview();
+}
+function renderReview(){
+    hideAll();
+    const box = el('view-review');
+    box.classList.remove('hidden');
+    box.innerHTML = `<div class="row" style="justify-content:space-between; align-items:center;"><h3>مراجعة الإجابات</h3><a class="btn" href="#/subject/${quiz.subjectId}">عودة</a></div>`;
+    quiz.items.forEach((q, i) => {
+        const questionCard = document.createElement('div');
+        questionCard.className = 'card';
+        questionCard.style.marginTop = '15px';
+        let optionsHTML = '';
+        const userChoice = quiz.selections[i];
+        const correctChoice = q.correctIndex;
+        if (q.shuffledMap) {
+            q.shuffledMap.forEach((shuffledOpt, domIndex) => {
+                const optIndex = shuffledOpt.originalIndex;
+                let classes = 'q-item review-item';
+                if (optIndex === correctChoice) classes += ' review-correct';
+                if (userChoice !== null && optIndex === userChoice) {
+                    classes += (userChoice === correctChoice) ? ' review-picked-correct' : ' review-picked-wrong';
+                }
+                const ABC=['A','B','C','D','E'];
+                optionsHTML += `<div class="${classes}"><div class="row"><span class="choiceBadge">${ABC[idx]}</span><div>${shuffledOpt.text}</div></div></div>`;
+            });
+        }
+        questionCard.innerHTML = `
+            <div style="font-weight:800;margin-bottom:10px;">${i+1}. ${q.text}</div>
+            <div style="display:grid;gap:8px;">${optionsHTML}</div>
+            ${q.explanation ? `<div class="muted" style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;"><b>التفسير:</b> ${q.explanation}</div>` : ''}
+        `;
+        box.appendChild(questionCard);
+    });
+}
+
+/* ===== Admin Logic ===== */
+function renderAdmin(){
+  if (currentUser.role !== 'admin') {
+      location.hash = '#/';
+      return;
+  }
+    
+  const box=el('view-admin'); box.classList.remove('hidden');
+  box.innerHTML=`
+    <h3>الإدارة</h3>
+    <input type="hidden" id="editing-question-id">
+    
+    <div class="card" style="margin-top:10px">
+      <h4>كود دخول الطلاب</h4>
+      <p class="muted">شارك هذا الكود مع طلابك ليتمكنوا من رؤية أسئلتك.</p>
+      <input id="admin-code-display" class="input" style="text-align:center; font-size: 18px; letter-spacing: 3px; font-weight: bold; color: var(--prim);" value="...جاري التحميل" readonly>
+    </div>
+    
+    <div class="card" style="margin-top:10px"><h4>البيانات</h4><button id="btn-clear" class="btn danger">تفريغ كل بيانات هذا الحساب</button></div>
+    <div class="card" style="margin-top:10px"><h4>إعدادات الاختبار</h4><div class="row"><input id="time-per-question" class="input" type="number" min="0" placeholder="الوقت لكل سؤال (بالثواني)"><button id="save-settings-btn" class="btn primary">حفظ الإعدادات</button></div></div>
+    <div class="card" style="margin-top:10px"><h4>المواد</h4><div class="row"><input id="subject-name" class="input" placeholder="اسم المادة"><button id="add-subject-btn" class="btn primary">إضافة</button></div><div id="subject-list"></div></div>
+    <div class="card" style="margin-top:10px"><h4>المحاضرات</h4><div class="row"><select id="lecture-subject" class="input"></select><input id="lecture-name" class="input" placeholder="اسم المحاضرة"></div><button id="add-lecture-btn" class="btn primary" style="margin-top:10px;">إضافة محاضرة</button><div id="lecture-list"></div></div>
+    <div class="card" style="margin-top:10px"><h4 id="q-form-title">إضافة سؤال</h4><div class="row"><select id="q-subject" class="input"></select><select id="q-lecture" class="input"></select></div><textarea id="q-text" class="input" placeholder="نص السؤال" rows="3" style="margin:8px 0;"></textarea><div class="row"><label class="pill">عدد الاختيارات<select id="opt-count" class="input"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></label><label class="pill">الإجابة الصحيحة<select id="correct" class="input"></select></label></div><div id="opts-wrap" class="optgrid" style="margin-top:8px"></div><textarea id="q-expl" class="input" placeholder="تفسير (اختياري)" style="margin-top:8px;"></textarea><div class="row" style="margin-top: 10px; justify-content: space-between;"><button id="add-question-btn" class="btn primary">حفظ السؤال</button><button id="cancel-edit-btn" class="btn hidden">إلغاء التعديل</button></div></div>
+    <div class="card" style="margin-top:10px"><h4 style="margin-top:14px">أسئلة المحاضرة الحالية</h4><div id="questions-list"></div></div>`;
+  
+  el('time-per-question').value = settings.timePerQuestion || '';
+  renderSubjectsAdmin();
+  rebuildOptions();
+  
+  adminCodeListener = db.ref(`admin_info/${currentUser.uid}/studentCode`);
+  adminCodeListener.on('value', snapshot => {
+    const codeDisplay = el('admin-code-display');
+    if (!codeDisplay) { 
+        adminCodeListener.off('value'); 
+        return; 
+    }
+    
+    if(snapshot.exists()) {
+        codeDisplay.value = snapshot.val();
+    } else {
+        codeDisplay.value = "..."; 
+    }
+  });
+
+  el('opt-count').addEventListener('change',rebuildOptions);
+  el('lecture-subject').onchange = renderLecturesAdmin;
+  el('q-subject').onchange = ()=>{ renderLectSelForQ(); };
+  el('q-lecture').onchange = renderQuestionsAdmin;
+}
+
+// !!! تعديل: إضافة مستمعات لأزرار التعديل
+function setupAdminListeners(){
+    const adminView = el('view-admin');
+    if(adminView.dataset.listenerAttached) return;
+    adminView.dataset.listenerAttached = 'true';
+    adminView.addEventListener('click', e => {
+        const target = e.target.closest('button');
+        if(!target) return;
+        const id = target.id;
+        if(id === 'save-settings-btn') {
+            const time = el('time-per-question').value;
+            settings.timePerQuestion = parseInt(time) > 0 ? parseInt(time) : null;
+            saveSettings(); 
+            alert('تم حفظ الإعدادات');
+        }
+        if(id === 'add-subject-btn') { const n=el('subject-name').value.trim(); if(!n) return; if(!store.subjects) store.subjects = []; store.subjects.push({id:uid(),name:n,lectures:[]}); el('subject-name').value=''; save(); renderSubjectsAdmin(); renderLectSelForQ(); }
+        if(id === 'add-lecture-btn') { const sid=el('lecture-subject').value; if(!sid) return; const n=el('lecture-name').value.trim(); if(!n) return; const s=store.subjects.find(x=>x.id===sid); if(!s.lectures) s.lectures = []; s.lectures.push({id:uid(),name:n}); el('lecture-name').value=''; save(); renderLecturesAdmin(); renderLectSelForQ(); }
+        if(id === 'add-question-btn') {
+            const editingId = el('editing-question-id').value;
+            const sid=el('q-subject').value, lid=el('q-lecture').value; if(!sid||!lid) return;
+            const text=el('q-text').value.trim(); if(!text) return;
+            const n=Number(el('opt-count').value); const options=[];
+            for(let i=0;i<n;i++){ const v=el(`opt${i}`).value.trim(); if(!v) return alert('أكمل كل الاختيارات'); options.push(v); }
+            const correctIndex=Number(el('correct').value); const explanation=el('q-expl').value.trim();
+            if(!store.questions) store.questions = [];
+            if(editingId){
+                const q = store.questions.find(q => q.id === editingId);
+                if(q){
+                    q.subjectId = sid; q.lectureId = lid; q.text = text;
+                    q.options = options; q.correctIndex = correctIndex; q.explanation = explanation;
+                }
+                clearQuestionForm();
+            } else {
+                store.questions.push({id:uid(),subjectId:sid,lectureId:lid,text,options,correctIndex,explanation});
+            }
+            save(); 
+            if(!editingId){ for(let i=0;i<n;i++) el(`opt${i}`).value=''; el('q-text').value=''; el('q-expl').value='';}
+            renderQuestionsAdmin();
+        }
+        if(id === 'cancel-edit-btn') { clearQuestionForm(); }
+        if(id === 'btn-clear') { 
+            if(confirm('هل أنت متأكد؟ سيتم حذف كل المواد والأسئلة الخاصة بك نهائياً من قاعدة البيانات.')){ 
+                store={subjects:[],questions:[]};
+                settings={};
+                save(); 
+                route(); 
+            } 
+        }
+        
+        // --- !!! جديد: منطق التعديل ---
+        if (target.classList.contains('btn-edit-subject')) {
+            const id = target.dataset.id;
+            const subject = store.subjects.find(s => s.id === id);
+            if (!subject) return;
+            const newName = prompt("تعديل اسم المادة:", subject.name);
+            if (newName && newName.trim() !== "") {
+                subject.name = newName.trim();
+                save();
+                renderSubjectsAdmin(); // إعادة رسم قائمة المواد
+                renderLectSelForQ(); // تحديث القوائم المنسدلة
+            }
+        }
+        if (target.classList.contains('btn-edit-lecture')) {
+            const id = target.dataset.id;
+            const sid = target.dataset.subjectId;
+            const subject = store.subjects.find(s => s.id === sid);
+            if (!subject || !subject.lectures) return;
+            const lecture = subject.lectures.find(l => l.id === id);
+            if (!lecture) return;
+            const newName = prompt("تعديل اسم المحاضرة:", lecture.name);
+            if (newName && newName.trim() !== "") {
+                lecture.name = newName.trim();
+                save();
+                renderLecturesAdmin(); // إعادة رسم قائمة المحاضرات
+                renderLectSelForQ(); // تحديث القوائم المنسدلة
+            }
+        }
+        // --- نهاية المنطق الجديد ---
+
+        const delId = target.dataset.id;
+        const editId = target.dataset.editId;
+        if(target.classList.contains('btn-delete-subject')) deleteSubject(delId);
+        if(target.classList.contains('btn-delete-lecture')) deleteLecture(target.dataset.subjectId, delId);
+        if(target.classList.contains('btn-delete-question')) deleteQuestion(delId);
+        if(target.classList.contains('btn-edit-question')) populateQuestionForm(editId);
+    });
+}
+function rebuildOptions(){
+    const n=Number(el('opt-count').value), wrap=el('opts-wrap'), csel=el('correct');
+    wrap.innerHTML=''; csel.innerHTML=''; const ABC=['A','B','C','D','E'];
+    for(let i=0;i<n;i++){
+        csel.innerHTML += `<option value="${i}">${ABC[i]}</option>`;
+        wrap.innerHTML += `<div class="optField"><span class="abadge">${ABC[i]}</span><input id="opt${i}" class="input opt" placeholder="نص الاختيار ${ABC[i]}"></div>`;
+    }
+}
+function clearQuestionForm() {
+    el('editing-question-id').value = '';
+    el('q-form-title').textContent = 'إضافة سؤال';
+    el('add-question-btn').textContent = 'حفظ السؤال';
+    el('cancel-edit-btn').classList.add('hidden');
+    el('q-text').value='';
+    el('q-expl').value='';
+    const n=Number(el('opt-count').value);
+    for(let i=0;i<n;i++) el(`opt${i}`).value='';
+}
+function populateQuestionForm(id) {
+    const q = store.questions.find(q => q.id === id);
+    if(!q) return;
+    el('q-subject').value = q.subjectId;
+    renderLectSelForQ(() => {
+        el('q-lecture').value = q.lectureId;
+    });
+    el('editing-question-id').value = id;
+    el('q-text').value = q.text;
+    el('q-expl').value = q.explanation;
+    el('opt-count').value = q.options.length;
+    el('opt-count').dispatchEvent(new Event('change'));
+    q.options.forEach((opt, i) => { el('opt'+i).value = opt; });
+    el('correct').value = q.correctIndex;
+    el('q-form-title').textContent = 'تعديل السؤال';
+    el('add-question-btn').textContent = 'حفظ التعديلات';
+    el('cancel-edit-btn').classList.remove('hidden');
+    el('q-text').focus();
+}
+// !!! تعديل: إضافة أزرار التعديل
+function renderSubjectsAdmin(){
+    const list=el('subject-list'); list.innerHTML='';
+    const sel1=el('lecture-subject'), sel2=el('q-subject');
+    sel1.innerHTML='<option value="">-- اختر مادة --</option>'; sel2.innerHTML='<option value="">-- اختر مادة --</option>';
+    (store.subjects||[]).forEach(s=>{
+      list.innerHTML += `<div class="card" style="padding:10px;"><div class="row" style="justify-content:space-between; align-items:center;"><div class="name">${s.name}</div>
+        <div class="row">
+            <button class="btn warn btn-edit-subject" data-id="${s.id}" style="padding:4px 8px;">تعديل</button>
+            <button class="btn danger btn-delete-subject" data-id="${s.id}" style="padding:4px 8px;">حذف</button>
+        </div>
+      </div></div>`;
+      sel1.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+      sel2.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+    });
+    renderLecturesAdmin();
+}
+function deleteSubject(id){ store.subjects = store.subjects.filter(s => s.id !== id); store.questions = store.questions.filter(q => q.subjectId !== id); save(); renderSubjectsAdmin(); renderLectSelForQ(); }
+// !!! تعديل: إضافة أزرار التعديل
+function renderLecturesAdmin(){
+    const sid=el('lecture-subject').value;
+    const list=el('lecture-list'); list.innerHTML='';
+    const s=store.subjects.find(x=>x.id===sid);
+    (s?.lectures||[]).forEach(l=>{
+      list.innerHTML += `<div class="card" style="padding:10px;"><div class="row" style="justify-content:space-between; align-items:center;"><div class="name">${l.name}</div>
+        <div class="row">
+            <button class="btn warn btn-edit-lecture" data-subject-id="${sid}" data-id="${l.id}" style="padding:4px 8px;">تعديل</button>
+            <button class="btn danger btn-delete-lecture" data-subject-id="${sid}" data-id="${l.id}" style="padding:4px 8px;">حذف</button>
+        </div>
+      </div></div>`;
+    });
+    renderLectSelForQ();
+}
+function deleteLecture(sid, lid){ const s=store.subjects.find(x=>x.id===sid); if(s) s.lectures = s.lectures.filter(l => l.id !== lid); store.questions = store.questions.filter(q => q.lectureId !== lid); save(); renderLecturesAdmin(); renderQuestionsAdmin(); renderLectSelForQ(); }
+function renderLectSelForQ(callback){
+    const sid=el('q-subject').value;
+    const sel=el('q-lecture'); sel.innerHTML='<option value="">-- اختر محاضرة --</option>';
+    const s=store.subjects.find(x=>x.id===sid);
+    (s?.lectures||[]).forEach(l=>{ sel.innerHTML += `<option value="${l.id}">${l.name}</option>`; });
+    if (callback) callback();
+    renderQuestionsAdmin();
+}
+function renderQuestionsAdmin(){
+    const lid=el('q-lecture').value;
+    const list=el('questions-list'); list.innerHTML='';
+    if(!lid) return;
+    (store.questions||[]).filter(q=>q.lectureId===lid).forEach((q, index) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.marginTop = '10px';
+      let optsHTML = q.options.map((opt, i) => `<div class="admin-q-option ${i === q.correctIndex ? 'correct' : ''}">${String.fromCharCode(65 + i)}. ${opt}</div>`).join('');
+      card.innerHTML = `
+        <div style="font-weight:bold;">${index+1}. ${q.text}</div>
+        <div style="display:grid; gap:4px; margin-top:8px; padding-inline-start: 10px;">${optsHTML}</div>
+        <div class="row" style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px; justify-content:flex-end;">
+            <button class="btn warn btn-edit-question" data-edit-id="${q.id}" style="padding:4px 8px;">تعديل</button>
+            <button class="btn danger btn-delete-question" data-id="${q.id}" style="padding:4px 8px;">حذف</button>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+}
+function deleteQuestion(id){ store.questions = store.questions.filter(q => q.id !== id); save(); renderQuestionsAdmin(); }
+
+/* ===== Auth & Init (المنطق الجديد) ===== */
+function showMainApp(isLoggedIn) {
+    if (isLoggedIn) {
+        el('appbar').classList.remove('hidden');
+        el('main-container').classList.remove('hidden');
+        el('view-login').style.display = 'none';
+    } else {
+        el('appbar').classList.add('hidden');
+        el('main-container').classList.add('hidden');
+        el('view-login').style.display = 'block';
+        hideAll();
+        el('view-login').classList.remove('hidden');
+    }
+}
+
+function initializeAppUI() {
+    showMainApp(true); 
+
+    if (currentUser.role === 'admin') {
+        el('mi-admin').classList.remove('hidden');
+    } else {
+        el('mi-admin').classList.add('hidden');
+    }
+    
+    load(); 
+    applyTheme(currentTheme());
+    setupAdminListeners();
+    route(); 
+}
+
+// 1. مراقبة دخول الأدمن (عبر Firebase Auth)
+auth.onAuthStateChanged(user => {
+    if (user) {
+        if (isNewAdminSignup) {
+            isNewAdminSignup = false; 
+            db.ref(`admin_info/${user.uid}/studentCode`).once('value', snapshot => {
+                const newCode = snapshot.val();
+                alert(`تم تسجيل حسابك بنجاح!nnكود الطلاب الخاص بك هو: ${newCode}`);
+                
+                currentUser = { role: 'admin', uid: user.uid };
+                currentAdminContext = user.uid;
+                localStorage.removeItem('session_role');
+                localStorage.removeItem('session_admin_uid');
+                initializeAppUI();
+            });
+            
+        } else {
+            currentUser = { role: 'admin', uid: user.uid };
+            currentAdminContext = user.uid;
+            localStorage.removeItem('session_role');
+            localStorage.removeItem('session_admin_uid');
+            initializeAppUI();
+        }
+        
+    } else {
+        checkLocalStudentSession();
+    }
+});
+
+// 2. التحقق من جلسة الطالب (من المتصفح)
+function checkLocalStudentSession() {
+    const role = localStorage.getItem('session_role');
+    const adminUid = localStorage.getItem('session_admin_uid');
+    
+    if (role === 'student' && adminUid) {
+        currentUser = { role: 'student', adminUid: adminUid };
+        currentAdminContext = adminUid; 
+        initializeAppUI();
+    } else {
+        currentUser = null;
+        currentAdminContext = null;
+        showMainApp(false);
+    }
+}
+
+// 3. ربط أزرار تسجيل الدخول الجديدة
+el('tab-student').onclick = () => {
+    el('form-student').classList.remove('hidden');
+    el('form-admin').classList.add('hidden');
+    el('tab-student').classList.add('primary');
+    el('tab-admin').classList.remove('primary');
+    el('login-error').textContent = '';
+};
+el('tab-admin').onclick = () => {
+    el('form-student').classList.add('hidden');
+    el('form-admin').classList.remove('hidden');
+    el('tab-student').classList.remove('primary');
+    el('tab-admin').classList.add('primary');
+    el('login-error').textContent = '';
+};
+
+// دخول الطالب (بالكود)
+el('btn-login-student').onclick = () => {
+    const code = el('login-code').value.trim().toUpperCase();
+    if (!code) return;
+    el('login-error').textContent = '...جاري التحقق من الكود';
+    
+    db.ref('admin_codes/' + code).once('value', snapshot => {
+        if (snapshot.exists()) {
+            const adminUid = snapshot.val();
+            localStorage.setItem('session_role', 'student');
+            localStorage.setItem('session_admin_uid', adminUid);
+            checkLocalStudentSession();
+        } else {
+            el('login-error').textContent = 'خطأ: الكود غير صحيح.';
+        }
+    }).catch(err => {
+         el('login-error').textContent = 'خطأ في الشبكة. حاول مرة أخرى.';
+    });
+};
+
+// دخول الأدمن
+el('btn-login-admin').onclick = () => {
+    const email = el('login-email').value;
+    const pass = el('login-pass').value;
+    el('login-error').textContent = '';
+    auth.signInWithEmailAndPassword(email, pass)
+        .catch(err => {
+            el('login-error').textContent = 'خطأ: ' + err.message;
+        });
+};
+
+// تسجيل حساب أدمن جديد
+el('btn-signup-admin').onclick = async () => { 
+    const email = el('login-email').value;
+    const pass = el('login-pass').value;
+    el('login-error').textContent = '';
+    if (pass.length < 6) {
+        el('login-error').textContent = 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.';
+        return;
+    }
+    
+    try {
+        el('login-error').textContent = '...جاري إنشاء الحساب';
+        isNewAdminSignup = true; 
+
+        const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+        const newAdminUid = userCredential.user.uid;
+        
+        const newCode = uid().substring(0, 6).toUpperCase();
+        
+        await Promise.all([
+            db.ref('admin_codes/' + newCode).set(newAdminUid),
+            db.ref('admin_info/' + newAdminUid).set({
+                email: email,
+                studentCode: newCode
+            })
+        ]);
+        
+    } catch (err) {
+        isNewAdminSignup = false; 
+        el('login-error').textContent = 'خطأ: ' + err.message;
+    }
+};
+
+// 4. ربط زر تسجيل الخروج
+el('mi-logout').onclick = () => {
+    if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+        if (currentUser && currentUser.role === 'admin') {
+            auth.signOut(); 
+        }
+        localStorage.removeItem('session_role');
+        localStorage.removeItem('session_admin_uid');
+        
+        currentUser = null;
+        currentAdminContext = null;
+        store={subjects:[],questions:[]};
+        settings={};
+        
+        if(adminCodeListener) adminCodeListener.off('value');
+
+        showMainApp(false); 
+        closeMenu();
+    }
+};
+
+// 5. بدء تشغيل التطبيق عند تحميل الصفحة
+checkLocalStudentSession(); 
+applyTheme(currentTheme()); 
+
+// !!! إضافة: تسجيل الـ Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js') // اسم الملف يجب أن يتطابق
+      .then(registration => {
+        console.log('ServiceWorker: تسجيل ناجح، النطاق: ', registration.scope);
+      })
+      .catch(error => {
+        console.log('ServiceWorker: فشل التسجيل: ', error);
+      });
+  });
+}
+
+</script>
+</body>
+</html>
